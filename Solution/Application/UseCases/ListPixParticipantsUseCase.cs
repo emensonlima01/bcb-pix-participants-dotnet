@@ -1,103 +1,21 @@
 using Application.DTOs;
-using System.Globalization;
-using System.Net;
-using System.Text;
+using Domain.Interfaces;
 
 namespace Application.UseCases;
 
 public sealed class ListPixParticipantsUseCase
 {
-    private readonly string? csvUrl;
-    private readonly HttpClient httpClient;
+    private readonly IPixParticipantsSource source;
 
-    public ListPixParticipantsUseCase(string? csvUrl, HttpClient httpClient)
+    public ListPixParticipantsUseCase(IPixParticipantsSource source)
     {
-        this.csvUrl = csvUrl;
-        this.httpClient = httpClient;
+        this.source = source;
     }
 
     public async Task<PixParticipantsResponse> Handle(CancellationToken cancellationToken = default)
     {
-        if (!string.IsNullOrWhiteSpace(csvUrl))
-        {
-            var lines = await DownloadCsvLinesWithFallbackAsync(csvUrl, cancellationToken);
-            return ParseParticipants(lines);
-        }
-
-        throw new InvalidOperationException("Pix participants CSV URL is not configured.");
-    }
-
-    private async Task<List<string>> DownloadCsvLinesWithFallbackAsync(string baseUrl, CancellationToken cancellationToken)
-    {
-        var today = DateTime.Now;
-        var todayUrl = BuildCsvUrl(baseUrl, today);
-        var response = await httpClient.GetAsync(todayUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            response.Dispose();
-            var yesterdayUrl = BuildCsvUrl(baseUrl, today.AddDays(-1));
-            response = await httpClient.GetAsync(yesterdayUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        }
-
-        using (response)
-        {
-            response.EnsureSuccessStatusCode();
-
-            await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            using var reader = new StreamReader(responseStream, Encoding.GetEncoding("Windows-1252"), leaveOpen: false);
-
-            var lines = new List<string>();
-            while (!reader.EndOfStream)
-            {
-                var line = await reader.ReadLineAsync(cancellationToken);
-                if (line is not null)
-                {
-                    lines.Add(line);
-                }
-            }
-
-            return lines;
-        }
-    }
-
-    private static string BuildCsvUrl(string baseUrl, DateTime date)
-    {
-        const string token = "pix-";
-        var index = baseUrl.LastIndexOf(token, StringComparison.OrdinalIgnoreCase);
-        if (index < 0)
-        {
-            return baseUrl;
-        }
-
-        var dateText = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        var start = index + token.Length;
-        if (start >= baseUrl.Length)
-        {
-            return baseUrl + dateText;
-        }
-
-        var suffix = baseUrl.Substring(start);
-        var hasEightDigits = suffix.Length >= 8;
-        if (hasEightDigits)
-        {
-            for (var i = 0; i < 8; i++)
-            {
-                if (!char.IsDigit(suffix[i]))
-                {
-                    hasEightDigits = false;
-                    break;
-                }
-            }
-        }
-
-        if (hasEightDigits)
-        {
-            return baseUrl.Substring(0, start) + dateText + suffix.Substring(8);
-        }
-
-        return baseUrl.Substring(0, start) + dateText + suffix;
+        var lines = await source.GetLinesAsync(cancellationToken);
+        return ParseParticipants(lines);
     }
 
     private PixParticipantsResponse ParseParticipants(List<string> lines)
