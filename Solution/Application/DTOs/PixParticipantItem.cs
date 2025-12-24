@@ -1,3 +1,5 @@
+using Domain.Entities;
+
 namespace Application.DTOs;
 
 public enum PixParticipantKind
@@ -8,5 +10,5 @@ public enum PixParticipantKind
 
 public sealed record PixParticipantItem(
     PixParticipantKind Kind,
-    PixActiveParticipant? ActiveParticipant,
-    PixAdhesionParticipant? AdhesionParticipant);
+    ActivePixParticipant? ActiveParticipant,
+    AdhesionPixParticipant? AdhesionParticipant);

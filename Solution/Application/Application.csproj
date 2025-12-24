@@ -1,6 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="DTOs\Responses\**" />
+    <Compile Remove="Interfaces\**" />
+    <Compile Remove="Mappers\**" />
+    <EmbeddedResource Remove="DTOs\Responses\**" />
+    <EmbeddedResource Remove="Interfaces\**" />
+    <EmbeddedResource Remove="Mappers\**" />
+    <None Remove="DTOs\Responses\**" />
+    <None Remove="Interfaces\**" />
+    <None Remove="Mappers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 

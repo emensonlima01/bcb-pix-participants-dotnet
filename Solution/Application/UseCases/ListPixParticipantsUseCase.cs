@@ -1,4 +1,5 @@
 using Application.DTOs;
+using Domain.Entities;
 using Domain.Interfaces;
 
 namespace Application.UseCases;
@@ -48,34 +49,38 @@ public sealed class ListPixParticipantsUseCase(IPixParticipantsSource source)
             if (section == PixSection.Active)
             {
                 var parts = SplitLine(rawLine, 11);
-                var participant = new PixActiveParticipant(
-                    ParseOrder(parts[0]),
-                    parts[1],
-                    parts[2],
-                    parts[3],
-                    parts[4],
-                    parts[5],
-                    parts[6],
-                    parts[7],
-                    parts[8],
-                    parts[9],
-                    parts[10]);
+                var participant = new ActivePixParticipant
+                {
+                    Order = ParseOrder(parts[0]),
+                    ShortName = parts[1],
+                    Ispb = parts[2],
+                    Cnpj = parts[3],
+                    InstitutionType = parts[4],
+                    BcbAuthorized = parts[5],
+                    SpiParticipation = parts[6],
+                    PixParticipation = parts[7],
+                    PixMode = parts[8],
+                    PaymentInitiation = parts[9],
+                    CashoutFacilitator = parts[10]
+                };
                 yield return new PixParticipantItem(PixParticipantKind.Active, participant, null);
             }
             else if (section == PixSection.Adhesion)
             {
                 var parts = SplitLine(rawLine, 10);
-                var participant = new PixAdhesionParticipant(
-                    ParseOrder(parts[0]),
-                    parts[1],
-                    parts[2],
-                    parts[3],
-                    parts[4],
-                    parts[5],
-                    parts[6],
-                    parts[7],
-                    parts[8],
-                    parts[9]);
+                var participant = new AdhesionPixParticipant
+                {
+                    Order = ParseOrder(parts[0]),
+                    ShortName = parts[1],
+                    Ispb = parts[2],
+                    Cnpj = parts[3],
+                    InstitutionType = parts[4],
+                    BcbAuthorized = parts[5],
+                    SpiParticipation = parts[6],
+                    PixParticipation = parts[7],
+                    PixMode = parts[8],
+                    AdhesionStatus = parts[9]
+                };
                 yield return new PixParticipantItem(PixParticipantKind.Adhesion, null, participant);
             }
         }

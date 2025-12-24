@@ -1,32 +1,26 @@
-using Application.DTOs.Responses;
-using Application.Interfaces;
-using Application.Interfaces.Mappers;
+using Application.DTOs;
 using Domain.Entities;
 using Domain.Interfaces.Repositories;
 
 namespace Application.UseCases;
 
-public sealed class GetPixParticipantsUseCase(
-    IPixParticipantsRepository repository,
-    IMapper<ActivePixParticipant, PixActiveParticipantDto> activeMapper,
-    IMapper<AdhesionPixParticipant, PixAdhesionParticipantDto> adhesionMapper) 
-    : IUseCase<PixParticipantsResponseDto>
+public sealed class GetPixParticipantsUseCase(IPixParticipantsRepository repository)
 {
-    public async Task<PixParticipantsResponseDto> ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task<PixParticipantsResponse> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var activeParticipants = new List<PixActiveParticipantDto>();
-        var adhesionParticipants = new List<PixAdhesionParticipantDto>();
+        var activeParticipants = new List<ActivePixParticipant>();
+        var adhesionParticipants = new List<AdhesionPixParticipant>();
 
         await foreach (var participant in repository.StreamActiveParticipantsAsync(cancellationToken))
         {
-            activeParticipants.Add(activeMapper.Map(participant));
+            activeParticipants.Add(participant);
         }
 
         await foreach (var participant in repository.StreamAdhesionParticipantsAsync(cancellationToken))
         {
-            adhesionParticipants.Add(adhesionMapper.Map(participant));
+            adhesionParticipants.Add(participant);
         }
 
-        return new PixParticipantsResponseDto(activeParticipants, adhesionParticipants);
+        return new PixParticipantsResponse(activeParticipants, adhesionParticipants);
     }
 }
