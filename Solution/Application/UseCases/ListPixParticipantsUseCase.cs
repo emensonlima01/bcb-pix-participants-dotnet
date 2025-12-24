@@ -1,19 +1,11 @@
 using Application.DTOs;
 using Domain.Interfaces;
-using System.Runtime.CompilerServices;
 
 namespace Application.UseCases;
 
-public sealed class ListPixParticipantsUseCase
+public sealed class ListPixParticipantsUseCase(IPixParticipantsSource source)
 {
-    private readonly IPixParticipantsSource source;
-
-    public ListPixParticipantsUseCase(IPixParticipantsSource source)
-    {
-        this.source = source;
-    }
-
-    public async IAsyncEnumerable<PixParticipantItem> Handle([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<PixParticipantItem> Handle([global::System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var section = PixSection.None;
         var expectingHeader = false;

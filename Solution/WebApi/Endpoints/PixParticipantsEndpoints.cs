@@ -79,39 +79,39 @@ public static class PixParticipantsEndpoints
         }, "application/json; charset=utf-8"));
     }
 
-    private const string ActiveSectionName = "Lista de participantes ativos do Pix";
-    private const string AdhesionSectionName = "Lista de instituicoes em processo de adesao ao Pix";
+    private const string ActiveSectionName = "activeParticipants";
+    private const string AdhesionSectionName = "adhesionParticipants";
 
     private static void WriteActiveParticipant(Utf8JsonWriter writer, PixActiveParticipant participant)
     {
         writer.WriteStartObject();
-        WriteNullableNumber(writer, "Numero", participant.Order);
-        writer.WriteString("Nome Reduzido", participant.Name);
-        writer.WriteString("ISPB", participant.Ispb);
-        writer.WriteString("CNPJ", participant.Cnpj);
-        writer.WriteString("Tipo de Instituicao", participant.InstitutionType);
-        writer.WriteString("Autorizada pelo BCB", participant.AuthorizedByBcb);
-        writer.WriteString("Tipo de Participacao no SPI", participant.SpiParticipationType);
-        writer.WriteString("Tipo de Participacao no Pix", participant.PixParticipationType);
-        writer.WriteString("Modalidade de Participacao no Pix", participant.PixParticipationMode);
-        writer.WriteString("Iniciacao de Transacao de Pagamento", participant.PaymentInitiation);
-        writer.WriteString("Facilitador de servico de Saque e Troco (FSS)", participant.CashoutFacilitator);
+        WriteNullableNumber(writer, "order", participant.Order);
+        writer.WriteString("shortName", participant.ShortName);
+        writer.WriteString("ispb", participant.Ispb);
+        writer.WriteString("cnpj", participant.Cnpj);
+        writer.WriteString("institutionType", participant.InstitutionType);
+        writer.WriteString("bcbAuthorized", participant.BcbAuthorized);
+        writer.WriteString("spiParticipation", participant.SpiParticipation);
+        writer.WriteString("pixParticipation", participant.PixParticipation);
+        writer.WriteString("pixMode", participant.PixMode);
+        writer.WriteString("paymentInitiation", participant.PaymentInitiation);
+        writer.WriteString("cashoutFacilitator", participant.CashoutFacilitator);
         writer.WriteEndObject();
     }
 
     private static void WriteAdhesionParticipant(Utf8JsonWriter writer, PixAdhesionParticipant participant)
     {
         writer.WriteStartObject();
-        WriteNullableNumber(writer, "Numero", participant.Order);
-        writer.WriteString("Nome Reduzido", participant.Name);
-        writer.WriteString("ISPB", participant.Ispb);
-        writer.WriteString("CNPJ", participant.Cnpj);
-        writer.WriteString("Tipo de Instituicao", participant.InstitutionType);
-        writer.WriteString("Autorizada pelo BCB", participant.AuthorizedByBcb);
-        writer.WriteString("Tipo de Participacao no SPI", participant.SpiParticipationType);
-        writer.WriteString("Tipo de Participacao no Pix", participant.PixParticipationType);
-        writer.WriteString("Modalidade de Participacao no Pix", participant.PixParticipationMode);
-        writer.WriteString("Status da adesao", participant.AdhesionStatus);
+        WriteNullableNumber(writer, "order", participant.Order);
+        writer.WriteString("shortName", participant.ShortName);
+        writer.WriteString("ispb", participant.Ispb);
+        writer.WriteString("cnpj", participant.Cnpj);
+        writer.WriteString("institutionType", participant.InstitutionType);
+        writer.WriteString("bcbAuthorized", participant.BcbAuthorized);
+        writer.WriteString("spiParticipation", participant.SpiParticipation);
+        writer.WriteString("pixParticipation", participant.PixParticipation);
+        writer.WriteString("pixMode", participant.PixMode);
+        writer.WriteString("adhesionStatus", participant.AdhesionStatus);
         writer.WriteEndObject();
     }
 
