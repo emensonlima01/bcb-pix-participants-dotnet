@@ -1,7 +1,10 @@
 using IoC;
+using System.Text;
 using WebApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

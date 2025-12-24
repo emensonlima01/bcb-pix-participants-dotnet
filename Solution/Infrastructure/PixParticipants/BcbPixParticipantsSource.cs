@@ -1,17 +1,21 @@
 using Domain.Interfaces;
 using Infrastructure.Options;
 using Microsoft.Extensions.Options;
+using System.Buffers;
 using System.Globalization;
+using System.IO.Pipelines;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Infrastructure.PixParticipants;
 
 public sealed class BcbPixParticipantsSource(HttpClient httpClient, IOptions<PixParticipantsOptions> options) : IPixParticipantsSource
 {
+    private static readonly Encoding CsvEncoding = Encoding.GetEncoding("Windows-1252");
     private readonly PixParticipantsOptions options = options.Value;
 
-    public async Task<List<string>> GetLinesAsync(CancellationToken cancellationToken)
+    public async IAsyncEnumerable<string> GetLinesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(options.CsvUrl))
         {
@@ -32,22 +36,11 @@ public sealed class BcbPixParticipantsSource(HttpClient httpClient, IOptions<Pix
             response.EnsureSuccessStatusCode();
 
             await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            using var reader = new StreamReader(responseStream, Encoding.GetEncoding("Windows-1252"), leaveOpen: false);
-
-            var lines = new List<string>();
-            while (true)
+            var reader = PipeReader.Create(responseStream);
+            await foreach (var line in ReadLinesAsync(reader, cancellationToken))
             {
-                var line = await reader.ReadLineAsync(cancellationToken);
-                if (line is null)
-                {
-                    break;
-                }
-
-                lines.Add(line);
+                yield return line;
             }
-
-            return lines;
         }
     }
 
@@ -61,5 +54,79 @@ public sealed class BcbPixParticipantsSource(HttpClient httpClient, IOptions<Pix
     {
         var dateText = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         return $"{baseUrl}-{dateText}.csv";
+    }
+
+    private static async IAsyncEnumerable<string> ReadLinesAsync(
+        PipeReader reader,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            var readResult = await reader.ReadAsync(cancellationToken);
+            var buffer = readResult.Buffer;
+
+            while (TryReadLine(ref buffer, out var line))
+            {
+                if (line.IsEmpty)
+                {
+                    continue;
+                }
+
+                yield return DecodeLine(line);
+            }
+
+            reader.AdvanceTo(buffer.Start, buffer.End);
+
+            if (readResult.IsCompleted)
+            {
+                break;
+            }
+        }
+
+        await reader.CompleteAsync();
+    }
+
+    private static bool TryReadLine(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> line)
+    {
+        var position = buffer.PositionOf((byte)'\n');
+        if (position is null)
+        {
+            line = default;
+            return false;
+        }
+
+        line = buffer.Slice(0, position.Value);
+        buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+
+        if (line.Length > 0)
+        {
+            var lastByte = line.Slice(line.Length - 1, 1).FirstSpan[0];
+            if (lastByte == (byte)'\r')
+            {
+                line = line.Slice(0, line.Length - 1);
+            }
+        }
+
+        return true;
+    }
+
+    private static string DecodeLine(ReadOnlySequence<byte> line)
+    {
+        if (line.IsSingleSegment)
+        {
+            return CsvEncoding.GetString(line.FirstSpan);
+        }
+
+        var length = checked((int)line.Length);
+        var buffer = ArrayPool<byte>.Shared.Rent(length);
+        try
+        {
+            line.CopyTo(buffer);
+            return CsvEncoding.GetString(buffer, 0, length);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 }

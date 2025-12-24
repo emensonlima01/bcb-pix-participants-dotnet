@@ -1,5 +1,6 @@
 using Application.DTOs;
 using Domain.Interfaces;
+using System.Runtime.CompilerServices;
 
 namespace Application.UseCases;
 
@@ -12,21 +13,12 @@ public sealed class ListPixParticipantsUseCase
         this.source = source;
     }
 
-    public async Task<PixParticipantsResponse> Handle(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<PixParticipantItem> Handle([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var lines = await source.GetLinesAsync(cancellationToken);
-        return ParseParticipants(lines);
-    }
-
-    private PixParticipantsResponse ParseParticipants(List<string> lines)
-    {
-        var active = new List<PixActiveParticipant>();
-        var adhesion = new List<PixAdhesionParticipant>();
-
         var section = PixSection.None;
         var expectingHeader = false;
 
-        foreach (var rawLine in lines)
+        await foreach (var rawLine in source.GetLinesAsync(cancellationToken).WithCancellation(cancellationToken))
         {
             if (string.IsNullOrWhiteSpace(rawLine))
             {
@@ -64,7 +56,7 @@ public sealed class ListPixParticipantsUseCase
             if (section == PixSection.Active)
             {
                 var parts = SplitLine(rawLine, 11);
-                active.Add(new PixActiveParticipant(
+                var participant = new PixActiveParticipant(
                     ParseOrder(parts[0]),
                     parts[1],
                     parts[2],
@@ -75,12 +67,13 @@ public sealed class ListPixParticipantsUseCase
                     parts[7],
                     parts[8],
                     parts[9],
-                    parts[10]));
+                    parts[10]);
+                yield return new PixParticipantItem(PixParticipantKind.Active, participant, null);
             }
             else if (section == PixSection.Adhesion)
             {
                 var parts = SplitLine(rawLine, 10);
-                adhesion.Add(new PixAdhesionParticipant(
+                var participant = new PixAdhesionParticipant(
                     ParseOrder(parts[0]),
                     parts[1],
                     parts[2],
@@ -90,11 +83,10 @@ public sealed class ListPixParticipantsUseCase
                     parts[6],
                     parts[7],
                     parts[8],
-                    parts[9]));
+                    parts[9]);
+                yield return new PixParticipantItem(PixParticipantKind.Adhesion, null, participant);
             }
         }
-
-        return new PixParticipantsResponse(active, adhesion);
     }
 
     private static string[] SplitLine(string line, int expectedCount)
